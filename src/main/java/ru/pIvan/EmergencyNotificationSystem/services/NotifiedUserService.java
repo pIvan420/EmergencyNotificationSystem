@@ -20,4 +20,12 @@ public class NotifiedUserService {
         this.notifiedUserRepository = notifiedUserRepository;
     }
 
+    @Transactional
+    public void save(Set<NotifiedUser> users){
+        notifiedUserRepository.saveAll(users);
+    }
+
+    public Optional<NotifiedUser> show(String phoneNumber){
+        return notifiedUserRepository.findByPhoneNumber(phoneNumber);
+    }
 }

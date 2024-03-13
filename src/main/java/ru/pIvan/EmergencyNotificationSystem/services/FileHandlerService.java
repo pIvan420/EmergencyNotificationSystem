@@ -14,6 +14,9 @@ import org.supercsv.io.CsvListReader;
 import org.supercsv.io.ICsvListReader;
 import org.supercsv.prefs.CsvPreference;
 import ru.pIvan.EmergencyNotificationSystem.models.NotifiedUser;
+import ru.pIvan.EmergencyNotificationSystem.util.fileHandlers.CsvFileHandler;
+import ru.pIvan.EmergencyNotificationSystem.util.fileHandlers.FileHandler;
+import ru.pIvan.EmergencyNotificationSystem.util.fileHandlers.XlsFileHandler;
 import ru.pIvan.EmergencyNotificationSystem.util.validator.InvalidFileFormatException;
 import ru.pIvan.EmergencyNotificationSystem.util.validator.NotifiedUserValidator;
 
@@ -27,6 +30,8 @@ public class FileHandlerService {
 
     private final NotifiedUserValidator notifyUserValidator;
     private final PhoneNumberUtil phoneNumberUtil;
+    private static final FileHandler csvFileHandler = new CsvFileHandler();
+    private static final FileHandler xlsFileHandler = new XlsFileHandler();
 
     @Autowired
     public FileHandlerService(NotifiedUserValidator notifyUserValidator) {
@@ -34,26 +39,30 @@ public class FileHandlerService {
         this.phoneNumberUtil = PhoneNumberUtil.getInstance();
     }
 
-    public NotificationResult processFileToNotifyUsers(MultipartFile file) throws InvalidFileFormatException, IOException {
-        List<String> records;
-        String fileName = file.getOriginalFilename();
-        if (fileName != null) {
+    public ProcessingResult processFileToNotifyUsers(MultipartFile file) throws InvalidFileFormatException, IOException {
+        List<String> rawFileRecords;
+        String filename = file.getOriginalFilename();
 
-            String extension = fileName.substring(fileName.lastIndexOf(".") + 1); // Получение расширения файла
-
-            records = switch (extension.toLowerCase()) {
-                case "csv" -> csvFileProcessor(file);
-                case "xls" -> xlsFileProcessor(file);
-                default -> throw new InvalidFileFormatException("Unsupported file extension: " + extension);
-            };
-
-            return convertStringToNotifyUser(records);
-        }
-        else{
+        if(filename == null){
             throw new IllegalArgumentException("File name cannot be empty");
+        } else if (filename.lastIndexOf(".") == -1) {
+            throw new IllegalArgumentException("File name cannot be without extension");
         }
+
+        String fileExtension = filename.substring(filename.lastIndexOf(".") + 1);
+
+        FileHandler fileHandler = switch (fileExtension.toLowerCase()) {
+            case "csv" -> csvFileHandler;
+            case "xls" -> xlsFileHandler;
+            default -> throw new InvalidFileFormatException(fileExtension);
+        };
+
+        rawFileRecords = fileHandler.process(file);
+
+        return convertStringToNotifyUser(rawFileRecords);
     }
-    private NotificationResult convertStringToNotifyUser(List<String> records){
+
+    private ProcessingResult convertStringToNotifyUser(List<String> records){
         Set<NotifiedUser> correctPhoneNumbers = new HashSet<>();
         Set<BadPhoneNumber> badPhoneNumbers = new HashSet<>();
         for(String record: records){
@@ -85,44 +94,7 @@ public class FileHandlerService {
                         "Invalid phone number format"));
             }
         }
-        return new NotificationResult(correctPhoneNumbers, badPhoneNumbers);
-    }
-
-    private List<String> csvFileProcessor(MultipartFile file) throws IOException {
-        //считываю данные из файла и преобразую ячейки таблицы к строкам
-        List<String> records = new ArrayList<>();
-        Reader reader = new InputStreamReader(file.getInputStream());
-        ICsvListReader listReader = new CsvListReader(reader, CsvPreference.STANDARD_PREFERENCE);
-
-        List<String> record;
-        while((record = listReader.read()) != null) {
-            //Из строки достаю НЕ пустые ячейки
-            records.addAll(Arrays
-                    .stream(record
-                            .get(0)
-                            .split(";"))
-                    .filter(s -> !s.isEmpty())
-                    .toList());
-        }
-        return records;
-    }
-
-    private List<String> xlsFileProcessor(MultipartFile file) throws IOException {
-        List<String> records = new ArrayList<>();
-        Workbook workbook = WorkbookFactory.create(file.getInputStream());
-        Sheet sheet = workbook.getSheetAt(0);
-        for(Row row: sheet){
-            for(Cell cell: row){
-                String record = switch(cell.getCellType()){
-                    case STRING -> cell.getStringCellValue();
-                    case NUMERIC -> Long.toString((long) cell.getNumericCellValue());
-                    default -> null;
-                };
-                if(record != null) records.add(record);
-            }
-        }
-        workbook.close();
-        return records;
+        return new ProcessingResult(correctPhoneNumbers, badPhoneNumbers);
     }
 
     public class BadPhoneNumber{
@@ -165,11 +137,11 @@ public class FileHandlerService {
         }
     }
 
-    public class NotificationResult {
+    public class ProcessingResult {
         private final Set<NotifiedUser> correctPhoneNumbers;
         private final Set<BadPhoneNumber> badPhoneNumbers;
 
-        public NotificationResult(Set<NotifiedUser> correctPhoneNumbers, Set<BadPhoneNumber> badPhoneNumbers) {
+        public ProcessingResult(Set<NotifiedUser> correctPhoneNumbers, Set<BadPhoneNumber> badPhoneNumbers) {
             this.correctPhoneNumbers = correctPhoneNumbers;
             this.badPhoneNumbers = badPhoneNumbers;
         }

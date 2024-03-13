@@ -33,19 +33,19 @@ public class NotifiedUserController {
 
         try {
             //Обработка файла и сохранение в БД
-            FileHandlerService.NotificationResult notificationResult = fileHandlerService.processFileToNotifyUsers(file);
-            notifiedUserService.save(notificationResult.getCorrectPhoneNumbers());
+            FileHandlerService.ProcessingResult processingResult = fileHandlerService.processFileToNotifyUsers(file);
+            notifiedUserService.save(processingResult.getCorrectPhoneNumbers());
 
-            if (notificationResult.getBadPhoneNumbers().size() >= 1) {
-                String errorMessages = notificationResult.getBadPhoneNumbers().stream()
+            if (processingResult.getBadPhoneNumbers().size() >= 1) {
+                String errorMessages = processingResult.getBadPhoneNumbers().stream()
                         .map(badPhoneNumber -> badPhoneNumber.getPhoneNumber() + " " + badPhoneNumber.getErrorMsg())
                         .collect(Collectors.joining("\n"));
                 return ResponseEntity.ok("Added " +
-                        notificationResult.getCorrectPhoneNumbers().size() +
+                        processingResult.getCorrectPhoneNumbers().size() +
                         " phone numbers\nIncorrect phone numbers:\n" + errorMessages);
             } else {
                 return ResponseEntity.ok("Added " +
-                        notificationResult.getCorrectPhoneNumbers().size() + " phone numbers");
+                        processingResult.getCorrectPhoneNumbers().size() + " phone numbers");
             }
         } catch (IOException e) {
             return ResponseEntity.badRequest().body("I/O error: " + e.getMessage());

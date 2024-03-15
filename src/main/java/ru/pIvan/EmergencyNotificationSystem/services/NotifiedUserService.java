@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.pIvan.EmergencyNotificationSystem.models.NotifiedUser;
 import ru.pIvan.EmergencyNotificationSystem.repositories.NotifiedUserRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -25,6 +26,9 @@ public class NotifiedUserService {
         notifiedUserRepository.saveAll(users);
     }
 
+    public List<NotifiedUser> getAll(){
+        return notifiedUserRepository.findAll();
+    }
     public Optional<NotifiedUser> show(String phoneNumber){
         return notifiedUserRepository.findByPhoneNumber(phoneNumber);
     }

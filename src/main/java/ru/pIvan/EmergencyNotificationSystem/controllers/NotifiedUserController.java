@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import ru.pIvan.EmergencyNotificationSystem.services.FileHandlerService;
 import ru.pIvan.EmergencyNotificationSystem.services.NotifiedUserService;
-import ru.pIvan.EmergencyNotificationSystem.services.SmsAeroService;
 import ru.pIvan.EmergencyNotificationSystem.util.validator.InvalidFileFormatException;
 
 import java.io.IOException;
@@ -22,13 +21,12 @@ public class NotifiedUserController {
 
     private final NotifiedUserService notifiedUserService;
     private final FileHandlerService fileHandlerService;
-    private final SmsAeroService smsAeroService;
 
     @Autowired
-    public NotifiedUserController(NotifiedUserService notifiedUserService, FileHandlerService fileHandlerService, SmsAeroService smsAeroService) {
-            this.notifiedUserService = notifiedUserService;
-            this.fileHandlerService = fileHandlerService;
-        this.smsAeroService = smsAeroService;
+    public NotifiedUserController(NotifiedUserService notifiedUserService,
+                                  FileHandlerService fileHandlerService) {
+        this.notifiedUserService = notifiedUserService;
+        this.fileHandlerService = fileHandlerService;
     }
 
     @PostMapping(path = "/registration", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -55,11 +53,5 @@ public class NotifiedUserController {
         } catch (InvalidFileFormatException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
-    }
-
-    @PostMapping("/notify")
-    public ResponseEntity<String> notifyUser(@RequestParam("message") String message){
-        String response = smsAeroService.notifyUsers(message);
-        return ResponseEntity.ok().body(response);
     }
 }

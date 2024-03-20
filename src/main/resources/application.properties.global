@@ -4,8 +4,6 @@ spring.datasource.url=
 spring.datasource.username=
 spring.datasource.password=
 
-#SMS Aero API
-sms.sms_aero.email=
-sms.sms_aero.api_key=
-sms.sms_aero.url=https://gate.smsaero.ru/v2
-sms.sms_aero.url.send=sms/send
+#Kafka
+kafka.server=
+server.port=
